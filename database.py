@@ -19,11 +19,21 @@ Base.metadata.create_all(engine)
 def init_db():
     with open('patients.csv', 'r') as f:
         csv_reader = csv.DictReader(f)
-        with sessionmaker(bind=engine)() as session:
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
             for row in csv_reader:
-                patient = Patient(**row)
-                session.add(patient)
+                # Check if the patient already exists by ID
+                existing_patient = session.query(Patient).filter_by(id=row['id']).first()
+                if not existing_patient:
+                    patient = Patient(**row)
+                    session.add(patient)
             session.commit()
+        except Exception as e:
+            print(f"Error seeding database: {e}")
+            session.rollback()
+        finally:
+            session.close()
 
 def get_db():
     db = sessionmaker(bind=engine)()
